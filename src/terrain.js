@@ -150,13 +150,14 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           const plains = Math.max(0, (1 - moisture) * 1.6 * (1 - taiga));
           const biomeSum = shore + taiga + forest + plains || 1;
 
-          let r =
-            (194 * shore + 120 * plains + 80 * forest + 50 * taiga) / biomeSum;
-          let g =
-            (178 * shore + 180 * plains + 140 * forest + 100 * taiga) /
-            biomeSum;
-          let b =
-            (128 * shore + 80 * plains + 60 * forest + 50 * taiga) / biomeSum;
+          let r = (180 * shore + 100 * plains + 60 * forest + 40 * taiga) / biomeSum;
+          let g = (200 * shore + 220 * plains + 180 * forest + 130 * taiga) / biomeSum;
+          let b = (160 * shore + 100 * plains + 80 * forest + 70 * taiga) / biomeSum;
+
+          // Add subtle color variation with baseNoise and jitter
+          r *= 1 + (baseNoise - 0.5) * 0.15 + (jitter - 0.5) * 0.05;
+          g *= 1 + (baseNoise - 0.5) * 0.12 + (jitter - 0.5) * 0.04;
+          b *= 1 + (baseNoise - 0.5) * 0.1 + (jitter - 0.5) * 0.03;
 
           const heightLum = 0.8 + hNorm * 0.25;
           const jitterFactor = 1 + (jitter - 0.5) * 0.08;
@@ -196,7 +197,7 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           finalLight *= lerp(0.2, 1, dayFactor);
 
           // Optional: Slight saturation boost
-          const saturationBoost = 1.15;
+          const saturationBoost = 1.2;
           r = Math.min(255, r * finalLight * saturationBoost);
           g = Math.min(255, g * finalLight * saturationBoost * 0.95);
           b = Math.min(255, b * finalLight * saturationBoost * 0.9);
