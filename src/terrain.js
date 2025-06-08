@@ -1,4 +1,5 @@
-import { smoothNoise } from './noise.js';
+"use strict";
+import { smoothNoise } from "./noise.js";
 
 export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
   let W = 0;
@@ -11,12 +12,14 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
     let amplitude = 50;
 
     for (let o = 0; o < 5; o++) {
-      height += smoothNoise(x * scale, z * scale, terrainSeed + o * 1000) * amplitude;
+      height +=
+        smoothNoise(x * scale, z * scale, terrainSeed + o * 1000) * amplitude;
       scale *= 2;
       amplitude *= 0.5;
     }
 
-    const ridge = Math.abs(smoothNoise(x * 0.005, z * 0.005, terrainSeed + 99) - 0.5) * 2;
+    const ridge =
+      Math.abs(smoothNoise(x * 0.005, z * 0.005, terrainSeed + 99) - 0.5) * 2;
     height += ridge * 20;
 
     return height - z * 0.03;
@@ -55,22 +58,26 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
     const fovScale = 1.4;
     const scale = 280 / fovScale;
 
-    const zNear = 5, zFar = 120;
+    const zNear = 5,
+      zFar = 120;
     const lodFactor = 0.015;
 
     const fogStrength = 0.0025;
     const fogColor = [155, 185, 215];
 
-    const sinYaw = Math.sin(yaw), cosYaw = Math.cos(yaw);
-    const sinPitch = Math.sin(pitch), cosPitch = Math.cos(pitch);
+    const sinYaw = Math.sin(yaw),
+      cosYaw = Math.cos(yaw);
+    const sinPitch = Math.sin(pitch),
+      cosPitch = Math.cos(pitch);
     const horizon = H / 2 + pitch * 300;
 
     const sunX = Math.sin(-Math.PI / 3);
     const sunZ = Math.cos(-Math.PI / 3);
-    const ambient = 0.35, lightIntensity = 1.5;
+    const ambient = 0.35,
+      lightIntensity = 1.5;
     const slopeStep = 3;
 
-    for (let z = zNear; z < zFar;) {
+    for (let z = zNear; z < zFar; ) {
       const invZ = 1 / z;
       const pz = z;
 
@@ -79,8 +86,8 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
 
       const zStep = 1 + z * lodFactor;
       const dxStep = Math.max(1, Math.floor(z * lodFactor * 2));
-      const stepCosYaw = pz * cosYaw / halfW;
-      const stepSinYaw = -pz * sinYaw / halfW;
+      const stepCosYaw = (pz * cosYaw) / halfW;
+      const stepSinYaw = (-pz * sinYaw) / halfW;
 
       for (let x = 0; x < W; x += dxStep) {
         const xProj = x - halfW;
@@ -103,15 +110,28 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           const worldZ = worldZ1 * (1 - t) + worldZ2 * t;
           const h = h1 * (1 - t) + h2 * t;
 
-          const projH = ((h - camY) * cosPitch - z * sinPitch) * invZ * scale * 1.5;
+          const projH =
+            ((h - camY) * cosPitch - z * sinPitch) * invZ * scale * 1.5;
           const screenY = horizon - projH;
 
           if (screenY >= yBuffer[xi]) continue;
 
           const hNorm = Math.min(1, Math.max(0, (h - 10) * 0.008));
-          const moisture = smoothNoise(worldX * 0.001, worldZ * 0.001, terrainSeed + 5000);
-          const baseNoise = smoothNoise(worldX * 0.02, worldZ * 0.02, terrainSeed + 1234);
-          const jitter = smoothNoise(worldX * 0.015, worldZ * 0.015, terrainSeed);
+          const moisture = smoothNoise(
+            worldX * 0.001,
+            worldZ * 0.001,
+            terrainSeed + 5000,
+          );
+          const baseNoise = smoothNoise(
+            worldX * 0.02,
+            worldZ * 0.02,
+            terrainSeed + 1234,
+          );
+          const jitter = smoothNoise(
+            worldX * 0.015,
+            worldZ * 0.015,
+            terrainSeed,
+          );
 
           const shore = Math.pow(Math.max(0, 1 - hNorm * 5), 2);
           const taiga = Math.max(0, (hNorm - 0.65) * 3 + (moisture - 0.6) * 2);
@@ -119,9 +139,13 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           const plains = Math.max(0, (1 - moisture) * 1.6 * (1 - taiga));
           const biomeSum = shore + taiga + forest + plains || 1;
 
-          let r = (194 * shore + 120 * plains + 80 * forest + 50 * taiga) / biomeSum;
-          let g = (178 * shore + 180 * plains + 140 * forest + 100 * taiga) / biomeSum;
-          let b = (128 * shore + 80 * plains + 60 * forest + 50 * taiga) / biomeSum;
+          let r =
+            (194 * shore + 120 * plains + 80 * forest + 50 * taiga) / biomeSum;
+          let g =
+            (178 * shore + 180 * plains + 140 * forest + 100 * taiga) /
+            biomeSum;
+          let b =
+            (128 * shore + 80 * plains + 60 * forest + 50 * taiga) / biomeSum;
 
           const heightLum = 0.8 + hNorm * 0.25;
           const jitterFactor = 1 + (jitter - 0.5) * 0.08;
@@ -136,12 +160,22 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           let finalLight = 1;
 
           if (!isFar) {
-            const neighborH = getCachedHeight(worldX - sunX * slopeStep, worldZ - sunZ * slopeStep);
+            const neighborH = getCachedHeight(
+              worldX - sunX * slopeStep,
+              worldZ - sunZ * slopeStep,
+            );
             const slope = (h - neighborH) / slopeStep;
-            let lightFactor = lightIntensity * Math.max(0, Math.min(1, 0.5 + slope * 0.15));
+            let lightFactor =
+              lightIntensity * Math.max(0, Math.min(1, 0.5 + slope * 0.15));
             finalLight = ambient + lightFactor * (1 - ambient);
 
-            const ao = 0.85 + 0.15 * Math.min(1, Math.max(0, (h - 5) / 180 + Math.min(0, slope * 0.02)));
+            const ao =
+              0.85 +
+              0.15 *
+                Math.min(
+                  1,
+                  Math.max(0, (h - 5) / 180 + Math.min(0, slope * 0.02)),
+                );
             finalLight *= Math.pow(ao, 1.5);
           } else {
             const fakeSlope = (hNorm - 0.5) * 0.4;
@@ -157,7 +191,10 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           if (yStart >= yEnd) continue;
 
           for (let y = yStart; y < yEnd; y++) {
-            const fogAmount = Math.min(1, (z + Math.abs(y - horizon) * 0.3) * fogStrength);
+            const fogAmount = Math.min(
+              1,
+              (z + Math.abs(y - horizon) * 0.3) * fogStrength,
+            );
             const invFog = 1 - fogAmount;
 
             const fr = r * invFog + fogColor[0] * fogAmount;
@@ -165,11 +202,7 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
             const fb = b * invFog + fogColor[2] * fogAmount;
 
             const idx = y * W + xi;
-            pixelBuffer[idx] =
-              (255 << 24) |
-              (fb << 16) |
-              (fg << 8) |
-              (fr | 0);
+            pixelBuffer[idx] = (255 << 24) | (fb << 16) | (fg << 8) | (fr | 0);
           }
 
           yBuffer[xi] = yStart;

@@ -1,4 +1,13 @@
-export const camera = { x: 256, y: 100, z: 0, yaw: 0, pitch: 0, fov: 1.2, aspect: 1 };
+"use strict";
+export const camera = {
+  x: 256,
+  y: 100,
+  z: 0,
+  yaw: 0,
+  pitch: 0,
+  fov: 1.2,
+  aspect: 1,
+};
 
 let velocityX = 0;
 let velocityY = 0;
@@ -16,23 +25,26 @@ let isGrounded = false;
 const sensitivity = 0.002;
 
 export function initControls(canvas) {
-  window.addEventListener('keydown', e => {
+  window.addEventListener("keydown", (e) => {
     keys[e.key.toLowerCase()] = true;
-    if (e.key === ' ' && isGrounded) {
+    if (e.key === " " && isGrounded) {
       velocityY = jumpStrength;
     }
   });
-  window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+  window.addEventListener("keyup", (e) => (keys[e.key.toLowerCase()] = false));
 
   canvas.onclick = () => canvas.requestPointerLock();
-  document.addEventListener('pointerlockchange', () => {
+  document.addEventListener("pointerlockchange", () => {
     mouseLocked = document.pointerLockElement === canvas;
   });
-  document.addEventListener('mousemove', e => {
+  document.addEventListener("mousemove", (e) => {
     if (mouseLocked) {
       camera.yaw += e.movementX * sensitivity;
       camera.pitch -= e.movementY * sensitivity;
-      camera.pitch = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, camera.pitch));
+      camera.pitch = Math.max(
+        -Math.PI / 2,
+        Math.min(Math.PI / 2, camera.pitch),
+      );
     }
   });
 }
@@ -45,11 +57,24 @@ export function updateCamera(getHeight) {
   const forward = [sinYaw, 0, cosYaw];
   const right = [cosYaw, 0, -sinYaw];
 
-  let dirX = 0, dirZ = 0;
-  if (keys['w']) { dirX += forward[0]; dirZ += forward[2]; }
-  if (keys['s']) { dirX -= forward[0]; dirZ -= forward[2]; }
-  if (keys['a']) { dirX -= right[0];   dirZ -= right[2];   }
-  if (keys['d']) { dirX += right[0];   dirZ += right[2];   }
+  let dirX = 0,
+    dirZ = 0;
+  if (keys["w"]) {
+    dirX += forward[0];
+    dirZ += forward[2];
+  }
+  if (keys["s"]) {
+    dirX -= forward[0];
+    dirZ -= forward[2];
+  }
+  if (keys["a"]) {
+    dirX -= right[0];
+    dirZ -= right[2];
+  }
+  if (keys["d"]) {
+    dirX += right[0];
+    dirZ += right[2];
+  }
 
   const dirLength = Math.hypot(dirX, dirZ);
   if (dirLength > 0) {
