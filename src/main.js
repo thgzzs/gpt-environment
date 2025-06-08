@@ -1,9 +1,10 @@
-import { camera, initControls, updateCamera } from './camera.js';
-import { createSky } from './sky.js';
-import { createTerrain } from './terrain.js';
+"use strict";
+import { camera, initControls, updateCamera } from "./camera.js";
+import { createSky } from "./sky.js";
+import { createTerrain } from "./terrain.js";
 
-const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
 
 const sky = createSky(camera);
 const terrain = createTerrain();
@@ -16,7 +17,7 @@ function resize() {
   sky.resize(canvas.width, canvas.height);
   terrain.resize(canvas.width, canvas.height);
 }
-window.addEventListener('resize', resize);
+window.addEventListener("resize", resize);
 resize();
 
 let lastTime = performance.now();
