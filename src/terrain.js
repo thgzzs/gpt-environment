@@ -190,8 +190,17 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
                 );
             finalLight *= Math.pow(ao, 1.5);
           } else {
-            const fakeSlope = (hNorm - 0.5) * 0.4;
-            finalLight *= 0.8 + fakeSlope;
+            const neighborH = getCachedHeight(
+              worldX - sunX * slopeStep,
+              worldZ - sunZ * slopeStep,
+            );
+            const slope = (h - neighborH) / slopeStep;
+            let lightFactor = lightIntensity * Math.max(0, Math.min(1, 0.5 + slope * 0.15));
+            finalLight = ambient + lightFactor * (1 - ambient);
+            
+            // Approximate AO for far terrain (cheaper but better than none)
+            const ao = 0.9 + 0.1 * (hNorm - 0.5);
+            finalLight *= Math.pow(ao, 1.2);
           }
 
           finalLight *= lerp(0.2, 1, dayFactor);
