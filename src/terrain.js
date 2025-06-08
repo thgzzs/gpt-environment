@@ -62,7 +62,7 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
       zFar = 120;
     const lodFactor = 0.015;
 
-     const fogStrength = 0.0025;
+     const fogStrength = 0.0015;
      const fogColorDay = [155, 185, 215];
      const fogColorNight = [40, 50, 80];
       const fogColorBase = [
@@ -195,13 +195,16 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
 
           finalLight *= lerp(0.2, 1, dayFactor);
 
-          r = Math.min(255, r * finalLight);
-          g = Math.min(255, g * finalLight);
-          b = Math.min(255, b * finalLight);
-
-          r = lerp(r, skyColor.r, 0.3);
-          g = lerp(g, skyColor.g, 0.3);
-          b = lerp(b, skyColor.b, 0.3);
+          // Optional: Slight saturation boost
+          const saturationBoost = 1.15;
+          r = Math.min(255, r * finalLight * saturationBoost);
+          g = Math.min(255, g * finalLight * saturationBoost * 0.95);
+          b = Math.min(255, b * finalLight * saturationBoost * 0.9);
+          
+          // Reduce blending with the sky color to keep terrain vibrant
+          r = lerp(r, skyColor.r, 0.15);
+          g = lerp(g, skyColor.g, 0.15);
+          b = lerp(b, skyColor.b, 0.15);
 
           const yStart = Math.max(0, screenY | 0);
           const yEnd = Math.min(H, yBuffer[xi] | 0);
