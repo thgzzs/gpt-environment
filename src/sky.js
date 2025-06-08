@@ -42,7 +42,7 @@ export function createSky(camera) {
   const offCtx = offCanvas.getContext("2d");
   offCtx.imageSmoothingEnabled = true;
 
-  const cloudPlaneY = 170,
+  const cloudPlaneY = 240,
     cloudScale = 0.025,
     cloudSpeed = 1,
     threshold = 0.5;
