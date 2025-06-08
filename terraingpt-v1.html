@@ -109,14 +109,13 @@ const sensitivity = 0.002;
 let keys = {};
 
 // Input handling
-window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
-window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 window.addEventListener('keydown', e => {
   keys[e.key.toLowerCase()] = true;
   if (e.key === ' ' && isGrounded) {
     velocityY = jumpStrength;
   }
 });
+window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
 // Mouse look
 let mouseLocked = false;
