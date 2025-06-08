@@ -230,18 +230,6 @@ function getCachedHeight(x, z) {
   return heightCache.get(key);
 }
 
-self.onmessage = (e) => {
-  if (e.data.canvas) {
-    W = e.data.width;
-    H = e.data.height;
-    ctx = e.data.canvas.getContext("2d");
-    drawTerrain();
-  } else if (e.data.type === "update") {
-    ({ camX, camY, camZ, yaw, pitch, terrainSeed } = e.data.params);
-    drawTerrain();
-  }
-};
-
 function drawTerrain() {
   const imageData = ctx.getImageData(0, 0, W, H);
   const buffer = imageData.data;
