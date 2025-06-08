@@ -62,18 +62,18 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
       zFar = 120;
     const lodFactor = 0.015;
 
-65      const fogStrength = 0.0025;
-66      const fogColorDay = [155, 185, 215];
-67      const fogColorNight = [40, 50, 80];
-68      const fogColorBase = [
-69        lerp(fogColorNight[0], fogColorDay[0], dayFactor),
-70        lerp(fogColorNight[1], fogColorDay[1], dayFactor),
-71        lerp(fogColorNight[2], fogColorDay[2], dayFactor),
-72      ];
-73      const fogColor = [
-74        lerp(fogColorBase[0], skyColor.r, 0.4),
-75        lerp(fogColorBase[1], skyColor.g, 0.4),
-76        lerp(fogColorBase[2], skyColor.b, 0.4),
+     const fogStrength = 0.0025;
+     const fogColorDay = [155, 185, 215];
+     const fogColorNight = [40, 50, 80];
+      const fogColorBase = [
+       lerp(fogColorNight[0], fogColorDay[0], dayFactor),
+        lerp(fogColorNight[1], fogColorDay[1], dayFactor),
+       lerp(fogColorNight[2], fogColorDay[2], dayFactor),
+      ];
+      const fogColor = [
+        lerp(fogColorBase[0], skyColor.r, 0.4),
+        lerp(fogColorBase[1], skyColor.g, 0.4),
+        lerp(fogColorBase[2], skyColor.b, 0.4),
     ];
 
     const sinYaw = Math.sin(yaw),
@@ -208,15 +208,15 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           if (yStart >= yEnd) continue;
 
           for (let y = yStart; y < yEnd; y++) {
-211              const fogAmount = Math.min(
-212                1,
-213                (z + Math.abs(y - horizon) * 0.3) * fogStrength,
-214              );
-215              const invFog = 1 - fogAmount;
-216
-217              const fr = r * invFog + fogColor[0] * fogAmount;
-218              const fg = g * invFog + fogColor[1] * fogAmount;
-219              const fb = b * invFog + fogColor[2] * fogAmount;
+              const fogAmount = Math.min(
+                1,
+                (z + Math.abs(y - horizon) * 0.3) * fogStrength,
+             );
+              const invFog = 1 - fogAmount;
+
+              const fr = r * invFog + fogColor[0] * fogAmount;
+              const fg = g * invFog + fogColor[1] * fogAmount;
+              const fb = b * invFog + fogColor[2] * fogAmount;
 
             const idx = y * W + xi;
             pixelBuffer[idx] = (255 << 24) | (fb << 16) | (fg << 8) | (fr | 0);
