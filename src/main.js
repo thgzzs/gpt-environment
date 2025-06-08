@@ -32,7 +32,8 @@ function loop() {
   updateCamera(terrain.getTerrainHeight);
 
   sky.render(ctx, time);
-  terrain.draw(ctx, camera);
+  const dayFactor = sky.getDayFactor(time);
+  terrain.draw(ctx, camera, dayFactor);
 
   requestAnimationFrame(loop);
 }

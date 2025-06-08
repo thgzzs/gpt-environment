@@ -1,5 +1,5 @@
 "use strict";
-import { smoothNoise } from "./noise.js";
+import { smoothNoise, lerp } from "./noise.js";
 
 export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
   let W = 0;
@@ -42,7 +42,7 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
     H = height;
   }
 
-  function draw(ctx, camera) {
+  function draw(ctx, camera, dayFactor = 1) {
     const camX = camera.x;
     const camY = camera.y;
     const camZ = camera.z;
@@ -63,7 +63,13 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
     const lodFactor = 0.015;
 
     const fogStrength = 0.0025;
-    const fogColor = [155, 185, 215];
+    const fogColorDay = [155, 185, 215];
+    const fogColorNight = [40, 50, 80];
+    const fogColor = [
+      lerp(fogColorNight[0], fogColorDay[0], dayFactor),
+      lerp(fogColorNight[1], fogColorDay[1], dayFactor),
+      lerp(fogColorNight[2], fogColorDay[2], dayFactor),
+    ];
 
     const sinYaw = Math.sin(yaw),
       cosYaw = Math.cos(yaw);
@@ -73,8 +79,8 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
 
     const sunX = Math.sin(-Math.PI / 3);
     const sunZ = Math.cos(-Math.PI / 3);
-    const ambient = 0.35,
-      lightIntensity = 1.5;
+    const ambient = lerp(0.15, 0.35, dayFactor),
+      lightIntensity = lerp(0.5, 1.5, dayFactor);
     const slopeStep = 3;
 
     for (let z = zNear; z < zFar; ) {
@@ -181,6 +187,8 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
             const fakeSlope = (hNorm - 0.5) * 0.4;
             finalLight *= 0.8 + fakeSlope;
           }
+
+          finalLight *= lerp(0.2, 1, dayFactor);
 
           r = Math.min(255, r * finalLight);
           g = Math.min(255, g * finalLight);
