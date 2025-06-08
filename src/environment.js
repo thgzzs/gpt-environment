@@ -1,16 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <title>Procedural Sky with Stars (Fog/Void Overlay)</title>
-  <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
-  </style>
-</head>
-<body>
-<canvas id="canvas"></canvas>
-<script>
 (() => {
   // --- Canvas Setup ---
   const canvas = document.getElementById("canvas");
@@ -320,6 +307,3 @@ offCtx.fillRect(0, 0, wOff, hOff);
   }
   render();
 })();
-</script>
-</body>
-</html>

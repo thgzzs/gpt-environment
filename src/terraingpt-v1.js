@@ -1,16 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Voxel Space Engine</title>
-<style>
-  html, body { margin: 0; overflow: hidden; background: #000; }
-  canvas { display: block; width: 100vw; height: 100vh; }
-</style>
-</head>
-<body>
-<canvas id="canvas"></canvas>
-<script>
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 
@@ -407,6 +394,3 @@ function loop() {
     console.log("Terrain seed:", terrainSeed);
     loop();
 
-</script>
-</body>
-</html>
