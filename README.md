@@ -1,5 +1,7 @@
 # GPT Environment
 
+https://thgzzs.github.io/gpt-environment/
+
 This project demonstrates a minimal first‑person environment rendered on a canvas. Terrain and sky are generated procedurally using JavaScript modules in `src/` while static assets such as HTML live in the `public/` folder.
 
 ## Running the Demo
