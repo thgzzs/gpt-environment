@@ -55,32 +55,34 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
     const yBuffer = new Uint16Array(W).fill(H);
 
     const halfW = W >> 1;
-    const fovScale = 1.4;
-    const scale = 280 / fovScale;
+    const halfH = H >> 1;
+    const focalLength = halfH / Math.tan(camera.fov / 2);
+    const verticalScale = focalLength;
+    const horizontalScale = Math.tan(camera.fov / 2) * camera.aspect;
 
     const zNear = 5,
       zFar = 120;
     const lodFactor = 0.015;
 
-     const fogStrength = 0.0015;
-     const fogColorDay = [155, 185, 215];
-     const fogColorNight = [40, 50, 80];
-      const fogColorBase = [
-       lerp(fogColorNight[0], fogColorDay[0], dayFactor),
-        lerp(fogColorNight[1], fogColorDay[1], dayFactor),
-       lerp(fogColorNight[2], fogColorDay[2], dayFactor),
-      ];
-      const fogColor = [
-        lerp(fogColorBase[0], skyColor.r, 0.4),
-        lerp(fogColorBase[1], skyColor.g, 0.4),
-        lerp(fogColorBase[2], skyColor.b, 0.4),
+    const fogStrength = 0.0015;
+    const fogColorDay = [155, 185, 215];
+    const fogColorNight = [40, 50, 80];
+    const fogColorBase = [
+      lerp(fogColorNight[0], fogColorDay[0], dayFactor),
+      lerp(fogColorNight[1], fogColorDay[1], dayFactor),
+      lerp(fogColorNight[2], fogColorDay[2], dayFactor),
+    ];
+    const fogColor = [
+      lerp(fogColorBase[0], skyColor.r, 0.4),
+      lerp(fogColorBase[1], skyColor.g, 0.4),
+      lerp(fogColorBase[2], skyColor.b, 0.4),
     ];
 
     const sinYaw = Math.sin(yaw),
       cosYaw = Math.cos(yaw);
     const sinPitch = Math.sin(pitch),
       cosPitch = Math.cos(pitch);
-    const horizon = H / 2 + pitch * 300;
+    const horizon = halfH + pitch * focalLength;
 
     const sunX = Math.sin(-Math.PI / 3);
     const sunZ = Math.cos(-Math.PI / 3);
@@ -97,8 +99,8 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
 
       const zStep = 1 + z * lodFactor;
       const dxStep = Math.max(1, Math.floor(z * lodFactor * 2));
-      const stepCosYaw = (pz * cosYaw) / halfW;
-      const stepSinYaw = (-pz * sinYaw) / halfW;
+      const stepCosYaw = (pz * horizontalScale * cosYaw) / halfW;
+      const stepSinYaw = (-pz * horizontalScale * sinYaw) / halfW;
 
       for (let x = 0; x < W; x += dxStep) {
         const xProj = x - halfW;
@@ -122,7 +124,7 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           const h = h1 * (1 - t) + h2 * t;
 
           const projH =
-            ((h - camY) * cosPitch - z * sinPitch) * invZ * scale * 1.5;
+            ((h - camY) * cosPitch - z * sinPitch) * invZ * verticalScale;
           const screenY = horizon - projH;
 
           if (screenY >= yBuffer[xi]) continue;
@@ -150,9 +152,13 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           const plains = Math.max(0, (1 - moisture) * 1.6 * (1 - taiga));
           const biomeSum = shore + taiga + forest + plains || 1;
 
-          let r = (180 * shore + 100 * plains + 60 * forest + 40 * taiga) / biomeSum;
-          let g = (200 * shore + 220 * plains + 180 * forest + 130 * taiga) / biomeSum;
-          let b = (160 * shore + 100 * plains + 80 * forest + 70 * taiga) / biomeSum;
+          let r =
+            (180 * shore + 100 * plains + 60 * forest + 40 * taiga) / biomeSum;
+          let g =
+            (200 * shore + 220 * plains + 180 * forest + 130 * taiga) /
+            biomeSum;
+          let b =
+            (160 * shore + 100 * plains + 80 * forest + 70 * taiga) / biomeSum;
 
           // Add subtle color variation with baseNoise and jitter
           r *= 1 + (baseNoise - 0.5) * 0.15 + (jitter - 0.5) * 0.05;
@@ -195,9 +201,10 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
               worldZ - sunZ * slopeStep,
             );
             const slope = (h - neighborH) / slopeStep;
-            let lightFactor = lightIntensity * Math.max(0, Math.min(1, 0.5 + slope * 0.15));
+            let lightFactor =
+              lightIntensity * Math.max(0, Math.min(1, 0.5 + slope * 0.15));
             finalLight = ambient + lightFactor * (1 - ambient);
-            
+
             // Approximate AO for far terrain (cheaper but better than none)
             const ao = 0.9 + 0.1 * (hNorm - 0.5);
             finalLight *= Math.pow(ao, 1.2);
@@ -210,7 +217,7 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           r = Math.min(255, r * finalLight * saturationBoost);
           g = Math.min(255, g * finalLight * saturationBoost * 0.95);
           b = Math.min(255, b * finalLight * saturationBoost * 0.9);
-          
+
           // Reduce blending with the sky color to keep terrain vibrant
           r = lerp(r, skyColor.r, 0.15);
           g = lerp(g, skyColor.g, 0.15);
@@ -221,15 +228,15 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           if (yStart >= yEnd) continue;
 
           for (let y = yStart; y < yEnd; y++) {
-              const fogAmount = Math.min(
-                1,
-                (z + Math.abs(y - horizon) * 0.3) * fogStrength,
-             );
-              const invFog = 1 - fogAmount;
+            const fogAmount = Math.min(
+              1,
+              (z + Math.abs(y - horizon) * 0.3) * fogStrength,
+            );
+            const invFog = 1 - fogAmount;
 
-              const fr = r * invFog + fogColor[0] * fogAmount;
-              const fg = g * invFog + fogColor[1] * fogAmount;
-              const fb = b * invFog + fogColor[2] * fogAmount;
+            const fr = r * invFog + fogColor[0] * fogAmount;
+            const fg = g * invFog + fogColor[1] * fogAmount;
+            const fb = b * invFog + fogColor[2] * fogAmount;
 
             const idx = y * W + xi;
             pixelBuffer[idx] = (255 << 24) | (fb << 16) | (fg << 8) | (fr | 0);
