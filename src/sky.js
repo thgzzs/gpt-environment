@@ -19,6 +19,12 @@ export function createSky(camera) {
   const perspectiveExponent = 0.45;
   const dayCyclePeriod = 60;
 
+  function getDayFactor(time) {
+    return (
+      0.5 + 0.5 * Math.sin((2 * Math.PI * time) / dayCyclePeriod - Math.PI / 2)
+    );
+  }
+
   const daySkyTop = { r: 120, g: 180, b: 240 };
   const daySkyBottom = { r: 165, g: 200, b: 255 };
   const nightSkyTop = { r: 0, g: 0, b: 20 };
@@ -79,8 +85,7 @@ export function createSky(camera) {
   function render(ctx, time) {
     const wOff = offCanvas.width,
       hOff = offCanvas.height;
-    const dayFactor =
-      0.5 + 0.5 * Math.sin((2 * Math.PI * time) / dayCyclePeriod - Math.PI / 2);
+    const dayFactor = getDayFactor(time);
     const skyTopColor = lerpColor(nightSkyTop, daySkyTop, dayFactor);
     const skyBottomColor = lerpColor(nightSkyBottom, daySkyBottom, dayFactor);
     let horizonColor = tonedDownHorizon(
@@ -121,14 +126,14 @@ export function createSky(camera) {
       z: cosPitch * cosYaw,
     };
     const right = {
-      x: Math.sin(camera.yaw - Math.PI / 2),
+      x: Math.sin(camera.yaw + Math.PI / 2),
       y: 0,
-      z: Math.cos(camera.yaw - Math.PI / 2),
+      z: Math.cos(camera.yaw + Math.PI / 2),
     };
     const up = {
-      x: right.y * forward.z - right.z * forward.y,
-      y: right.z * forward.x - right.x * forward.z,
-      z: right.x * forward.y - right.y * forward.x,
+      x: forward.y * right.z - forward.z * right.y,
+      y: forward.z * right.x - forward.x * right.z,
+      z: forward.x * right.y - forward.y * right.x,
     };
     const scale = Math.tan(camera.fov / 2);
 
@@ -266,5 +271,5 @@ export function createSky(camera) {
     }
   }
 
-  return { resize, render };
+  return { resize, render, getDayFactor };
 }
