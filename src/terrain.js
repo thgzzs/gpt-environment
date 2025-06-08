@@ -42,7 +42,7 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
     H = height;
   }
 
-  function draw(ctx, camera, dayFactor = 1) {
+  function draw(ctx, camera, dayFactor = 1, skyColor = { r: 0, g: 0, b: 0 }) {
     const camX = camera.x;
     const camY = camera.y;
     const camZ = camera.z;
@@ -65,10 +65,15 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
     const fogStrength = 0.0025;
     const fogColorDay = [155, 185, 215];
     const fogColorNight = [40, 50, 80];
-    const fogColor = [
+    const fogColorBase = [
       lerp(fogColorNight[0], fogColorDay[0], dayFactor),
       lerp(fogColorNight[1], fogColorDay[1], dayFactor),
       lerp(fogColorNight[2], fogColorDay[2], dayFactor),
+    ];
+    const fogColor = [
+      lerp(fogColorBase[0], skyColor.r, 0.4),
+      lerp(fogColorBase[1], skyColor.g, 0.4),
+      lerp(fogColorBase[2], skyColor.b, 0.4),
     ];
 
     const sinYaw = Math.sin(yaw),
@@ -193,6 +198,10 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           r = Math.min(255, r * finalLight);
           g = Math.min(255, g * finalLight);
           b = Math.min(255, b * finalLight);
+
+          r = lerp(r, skyColor.r, 0.3);
+          g = lerp(g, skyColor.g, 0.3);
+          b = lerp(b, skyColor.b, 0.3);
 
           const yStart = Math.max(0, screenY | 0);
           const yEnd = Math.min(H, yBuffer[xi] | 0);
