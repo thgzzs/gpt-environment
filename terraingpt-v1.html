@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Voxel Space Engine</title>
+<style>
+  html, body { margin: 0; overflow: hidden; background: #000; }
+  canvas { display: block; width: 100vw; height: 100vh; }
+</style>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+let W = canvas.width;
+let H = canvas.height;
+
+// Random terrain seed for each session
+const terrainSeed = Math.floor(Math.random() * 100000);
+
+// Simple seeded value noise
+function rand(x, z, seed = 0) {
+  const h = x * 374761393 + z * 668265263 + seed * 14449;
+  const n = (h ^ (h >> 13)) * 1274126177;
+  return ((n ^ (n >> 16)) >>> 0) / 4294967295;
+}
+
+function interpolate(a, b, t) {
+  const ft = t * Math.PI;
+  const f = (1 - Math.cos(ft)) * 0.5;
+  return a * (1 - f) + b * f;
+}
+
+function smoothNoise(x, z, seed = 0) {
+  const intX = Math.floor(x);
+  const intZ = Math.floor(z);
+  const fracX = x - intX;
+  const fracZ = z - intZ;
+
+  const v1 = rand(intX, intZ, seed);
+  const v2 = rand(intX + 1, intZ, seed);
+  const v3 = rand(intX, intZ + 1, seed);
+  const v4 = rand(intX + 1, intZ + 1, seed);
+
+  const i1 = interpolate(v1, v2, fracX);
+  const i2 = interpolate(v3, v4, fracX);
+
+  return interpolate(i1, i2, fracZ);
+}
+
+function getTerrainHeight(x, z) {
+  let height = 0;
+  let scale = 0.01;      // larger features
+  let amplitude = 50;
+
+  for (let o = 0; o < 5; o++) {
+    height += smoothNoise(x * scale, z * scale, terrainSeed + o * 1000) * amplitude;
+    scale *= 2;
+    amplitude *= 0.5;
+  }
+
+  // Add variety: ridges and hills
+  const ridge = Math.abs(smoothNoise(x * 0.005, z * 0.005, terrainSeed + 99) - 0.5) * 2;
+  height += ridge * 20;
+
+  return height - z * 0.03; // perspective slope
+}
+
+// --- Biome logic ---
+function getBiome(x, z) {
+  const height = getTerrainHeight(x, z);
+  const moisture = smoothNoise(x * 0.001, z * 0.001, terrainSeed + 5000);
+
+  if (height < 30) return 'shore';
+  if (height < 50 && moisture < 0.3) return 'plains';
+  if (height > 90 || moisture > 0.7) return 'taiga';
+  return 'forest';
+}
+
+// --- World to screen projection ---
+function worldToScreen(x, y, z) {
+      const dx = x - camX, dy = y - camY, dz = z - camZ;
+      const sinY = Math.sin(-yaw), cosY = Math.cos(-yaw);
+      const sinP = Math.sin(-pitch), cosP = Math.cos(-pitch);
+
+      const dz1 = cosY * dz - sinY * dx;
+      const dx1 = sinY * dz + cosY * dx;
+      const dz2 = cosP * dz1 - sinP * dy;
+      const dy2 = sinP * dz1 + cosP * dy;
+
+      // cull behind or too close
+      if (dz2 <= 0.1) return null;
+
+      const scale = 400 / dz2;
+      return {
+        x: W/2 + dx1 * scale,
+        y: H/2 - dy2 * scale,
+        depth: dz2
+      };
+    }
+
+// Camera state
+let camX = 256, camY = 100, camZ = 0; // 100 is eye level = 80 ground + 20 height
+let yaw = 0, pitch = 0;
+const speed = 2;
+const sensitivity = 0.002;
+let keys = {};
+
+// Input handling
+window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+window.addEventListener('keydown', e => {
+  keys[e.key.toLowerCase()] = true;
+  if (e.key === ' ' && isGrounded) {
+    velocityY = jumpStrength;
+  }
+});
+
+// Mouse look
+let mouseLocked = false;
+canvas.onclick = () => canvas.requestPointerLock();
+document.addEventListener('pointerlockchange', () => mouseLocked = document.pointerLockElement === canvas);
+document.addEventListener('mousemove', e => {
+  if (mouseLocked) {
+    yaw += e.movementX * sensitivity;
+    pitch -= e.movementY * sensitivity;
+    pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
+  }
+});
+
+const playerHeight = 20;
+let velocityX = 0;
+let velocityY = 0;
+let velocityZ = 0;
+
+const acceleration = 0.2;
+const friction = 0.15;
+
+const gravity = -0.3;
+const jumpStrength = 2.5;
+let isGrounded = false;
+
+function updateCamera() {
+  const maxSpeed = 2.5;
+
+  const sinYaw = Math.sin(yaw);
+  const cosYaw = Math.cos(yaw);
+
+  // Calculate direction vectors (flat movement only)
+  const forward = [sinYaw, 0, cosYaw];
+  const right = [cosYaw, 0, -sinYaw];
+
+  // Aggregate input direction
+  let dirX = 0, dirZ = 0;
+  if (keys['w']) { dirX += forward[0]; dirZ += forward[2]; }
+  if (keys['s']) { dirX -= forward[0]; dirZ -= forward[2]; }
+  if (keys['a']) { dirX -= right[0];   dirZ -= right[2];   }
+  if (keys['d']) { dirX += right[0];   dirZ += right[2];   }
+
+  // Normalize direction
+  const dirLength = Math.hypot(dirX, dirZ);
+  if (dirLength > 0) {
+    dirX /= dirLength;
+    dirZ /= dirLength;
+  }
+
+  // Apply acceleration
+  velocityX += dirX * acceleration;
+  velocityZ += dirZ * acceleration;
+
+  // Apply friction
+  const effectiveFriction = friction * (isGrounded ? 1 : 0.5);
+  velocityX *= 1 - effectiveFriction;
+  velocityZ *= 1 - effectiveFriction;
+
+  // Clamp horizontal velocity
+  const speed = Math.hypot(velocityX, velocityZ);
+  if (speed > maxSpeed) {
+    const scale = maxSpeed / speed;
+    velocityX *= scale;
+    velocityZ *= scale;
+  }
+
+  // Update horizontal position
+  camX += velocityX;
+  camZ += velocityZ;
+
+  // Apply gravity and update vertical position
+  velocityY += gravity;
+  camY += velocityY;
+
+  // Terrain collision and grounding
+  const groundY = getTerrainHeight(camX, camZ) + playerHeight;
+  if (camY <= groundY) {
+    camY = groundY;
+    velocityY = 0;
+    isGrounded = true;
+  } else {
+    isGrounded = false;
+  }
+}
+
+function getNormalAt(x, z) {
+  const hL = getTerrainHeight(x - 1, z);
+  const hR = getTerrainHeight(x + 1, z);
+  const hD = getTerrainHeight(x, z - 1);
+  const hU = getTerrainHeight(x, z + 1);
+
+  const normalX = hL - hR;
+  const normalY = 2.0;
+  const normalZ = hD - hU;
+
+  const length = Math.hypot(normalX, normalY, normalZ);
+  return [normalX / length, normalY / length, normalZ / length];
+}
+
+const CHUNK_SIZE = 2; // or 4, or 8
+function cacheKey(x, z) {
+  return `${Math.floor(x / CHUNK_SIZE)},${Math.floor(z / CHUNK_SIZE)}`;
+}
+
+const heightCache = new Map();
+function getCachedHeight(x, z) {
+  const key = `${Math.floor(x)},${Math.floor(z)}`;
+  if (!heightCache.has(key)) {
+    const h = getTerrainHeight(x, z); // use your real terrain generator
+    heightCache.set(key, h);
+  }
+  return heightCache.get(key);
+}
+
+self.onmessage = (e) => {
+  if (e.data.canvas) {
+    W = e.data.width;
+    H = e.data.height;
+    ctx = e.data.canvas.getContext("2d");
+    drawTerrain();
+  } else if (e.data.type === "update") {
+    ({ camX, camY, camZ, yaw, pitch, terrainSeed } = e.data.params);
+    drawTerrain();
+  }
+};
+
+function drawTerrain() {
+  const imageData = ctx.getImageData(0, 0, W, H);
+  const buffer = imageData.data;
+  const pixelBuffer = new Uint32Array(buffer.buffer);
+  const yBuffer = new Uint16Array(W).fill(H);
+
+  const halfW = W >> 1;
+  const fovScale = 1.4;
+  const scale = 280 / fovScale;
+
+  const zNear = 5, zFar = 120;
+  const lodFactor = 0.015;
+
+  const fogStrength = 0.0025;
+  const fogColor = [155, 185, 215];
+
+  const safePitch = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, pitch));
+  const sinYaw = Math.sin(yaw), cosYaw = Math.cos(yaw);
+  const sinPitch = Math.sin(pitch), cosPitch = Math.cos(pitch);
+  const horizon = H / 2 + pitch * 300; // 300 = sensitivity multiplier
+
+  const sunX = Math.sin(-Math.PI / 3);
+  const sunZ = Math.cos(-Math.PI / 3);
+  const ambient = 0.35, lightIntensity = 1.5;
+  const slopeStep = 3;
+
+  for (let z = zNear; z < zFar;) {
+    const invZ = 1 / z;
+    const pz = z;
+const py = 0; // no vertical offset from pitch
+
+
+    const camXOffset = camX + pz * sinYaw;
+    const camZOffset = camZ + pz * cosYaw;
+
+    const zStep = 1 + z * lodFactor;
+    const dxStep = Math.max(1, Math.floor(z * lodFactor * 2));
+    const stepCosYaw = pz * cosYaw / halfW;
+    const stepSinYaw = -pz * sinYaw / halfW;
+
+    for (let x = 0; x < W; x += dxStep) {
+      const xProj = x - halfW;
+      const nextXProj = xProj + dxStep;
+
+      const worldX1 = camXOffset + xProj * stepCosYaw;
+      const worldZ1 = camZOffset + xProj * stepSinYaw;
+      const worldX2 = camXOffset + nextXProj * stepCosYaw;
+      const worldZ2 = camZOffset + nextXProj * stepSinYaw;
+
+      const h1 = getCachedHeight(worldX1, worldZ1);
+      const h2 = getCachedHeight(worldX2, worldZ2);
+
+      for (let i = 0; i < dxStep; i++) {
+        const xi = x + i;
+        if (xi >= W) break;
+
+        const t = i / dxStep;
+        const worldX = worldX1 * (1 - t) + worldX2 * t;
+        const worldZ = worldZ1 * (1 - t) + worldZ2 * t;
+        const h = h1 * (1 - t) + h2 * t;
+
+        const projH = ((h - camY) * cosPitch - z * sinPitch) * invZ * scale * 1.5;
+        const screenY = horizon - projH;
+
+        if (screenY >= yBuffer[xi]) continue;
+
+        // Precomputed terrain data
+        const hNorm = Math.min(1, Math.max(0, (h - 10) * 0.008));
+        const moisture = smoothNoise(worldX * 0.001, worldZ * 0.001, terrainSeed + 5000);
+        const baseNoise = smoothNoise(worldX * 0.02, worldZ * 0.02, terrainSeed + 1234);
+        const jitter = smoothNoise(worldX * 0.015, worldZ * 0.015, terrainSeed);
+
+        const shore = Math.pow(Math.max(0, 1 - hNorm * 5), 2);
+        const taiga = Math.max(0, (hNorm - 0.65) * 3 + (moisture - 0.6) * 2);
+        const forest = Math.max(0, 1 - Math.abs(moisture - 0.55) * 2.5);
+        const plains = Math.max(0, (1 - moisture) * 1.6 * (1 - taiga));
+        const biomeSum = shore + taiga + forest + plains || 1;
+
+        let r = (194 * shore + 120 * plains + 80 * forest + 50 * taiga) / biomeSum;
+        let g = (178 * shore + 180 * plains + 140 * forest + 100 * taiga) / biomeSum;
+        let b = (128 * shore + 80 * plains + 60 * forest + 50 * taiga) / biomeSum;
+
+        // Shading detail
+        const heightLum = 0.8 + hNorm * 0.25;
+        const jitterFactor = 1 + (jitter - 0.5) * 0.08;
+        const bump = (baseNoise - 0.5) * 0.1;
+        const contour = 1 + Math.sin(h * 0.15) * 0.05;
+
+        r *= heightLum * jitterFactor * contour * (1 + bump);
+        g *= heightLum * jitterFactor * 0.98 * contour * (1 + bump);
+        b *= heightLum * jitterFactor * 0.96 * contour * (1 + bump);
+
+        // Lighting — simplified for distant terrain
+        const isFar = z > 80;
+        let finalLight = 1;
+
+        if (!isFar) {
+          const neighborH = getCachedHeight(worldX - sunX * slopeStep, worldZ - sunZ * slopeStep);
+          const slope = (h - neighborH) / slopeStep;
+          let lightFactor = lightIntensity * Math.max(0, Math.min(1, 0.5 + slope * 0.15));
+          finalLight = ambient + lightFactor * (1 - ambient);
+
+          const ao = 0.85 + 0.15 * Math.min(1, Math.max(0, (h - 5) / 180 + Math.min(0, slope * 0.02)));
+          finalLight *= Math.pow(ao, 1.5);
+        } else {
+          const fakeSlope = (hNorm - 0.5) * 0.4;
+          finalLight *= 0.8 + fakeSlope; // adds some shape
+        }
+
+        r = Math.min(255, r * finalLight);
+        g = Math.min(255, g * finalLight);
+        b = Math.min(255, b * finalLight);
+
+        const yStart = Math.max(0, screenY | 0);
+        const yEnd = Math.min(H, yBuffer[xi] | 0);
+        if (yStart >= yEnd) continue;
+
+        for (let y = yStart; y < yEnd; y++) {
+          const fogAmount = Math.min(1, (z + Math.abs(y - horizon) * 0.3) * fogStrength);
+          const invFog = 1 - fogAmount;
+
+          const fr = r * invFog + fogColor[0] * fogAmount;
+          const fg = g * invFog + fogColor[1] * fogAmount;
+          const fb = b * invFog + fogColor[2] * fogAmount;
+
+          const idx = y * W + xi;
+          pixelBuffer[idx] =
+            (255 << 24) |
+            (fb << 16) |
+            (fg << 8) |
+            (fr | 0); // round via truncation
+        }
+
+        yBuffer[xi] = yStart;
+      }
+    }
+
+    z += zStep; // Variable step for LOD!
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
+function loop() {
+      updateCamera();
+      ctx.fillStyle = '#87CEEB';
+      ctx.fillRect(0, 0, W, H);
+      drawTerrain();
+
+      requestAnimationFrame(loop);
+    }
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      W = canvas.width;
+      H = canvas.height;
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    console.log("Terrain seed:", terrainSeed);
+    loop();
+
+</script>
+</body>
+</html>
