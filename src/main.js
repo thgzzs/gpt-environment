@@ -1,6 +1,6 @@
 "use strict";
 import { camera, initControls, updateCamera } from "./camera.js";
-import { createSky } from "./sky.js";
+import { createSky, getSkyColor } from "./sky.js";
 import { createTerrain } from "./terrain.js";
 
 const canvas = document.getElementById("canvas");
@@ -33,7 +33,8 @@ function loop() {
 
   sky.render(ctx, time);
   const dayFactor = sky.getDayFactor(time);
-  terrain.draw(ctx, camera, dayFactor);
+  const skyColor = getSkyColor(time);
+  terrain.draw(ctx, camera, dayFactor, skyColor);
 
   requestAnimationFrame(loop);
 }

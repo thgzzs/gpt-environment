@@ -1,6 +1,41 @@
 "use strict";
 import { fractalNoise, lerpColor, lerp, smoothStep } from "./noise.js";
 
+const dayCyclePeriod = 60;
+
+export function getDayFactor(time) {
+  return (
+    0.5 + 0.5 * Math.sin((2 * Math.PI * time) / dayCyclePeriod - Math.PI / 2)
+  );
+}
+
+export function getSkyColor(time) {
+  const daySkyBottom = { r: 165, g: 200, b: 255 };
+  const nightSkyBottom = { r: 10, g: 10, b: 40 };
+  const sunriseColor = { r: 255, g: 140, b: 70 };
+  const nightHorizonColor = { r: 15, g: 10, b: 30 };
+  const softPurple = { r: 180, g: 150, b: 200 };
+
+  const dayFactor = getDayFactor(time);
+  const skyBottomColor = lerpColor(nightSkyBottom, daySkyBottom, dayFactor);
+  const horizonBase =
+    dayFactor <= 0.33
+      ? lerpColor(nightHorizonColor, sunriseColor, smoothStep(0, 0.33, dayFactor))
+      : dayFactor <= 0.66
+        ? lerpColor(
+            sunriseColor,
+            softPurple,
+            smoothStep(0.33, 0.66, dayFactor),
+          )
+        : lerpColor(
+            softPurple,
+            skyBottomColor,
+            smoothStep(0.66, 1, dayFactor),
+          );
+  const horizonColor = lerpColor(horizonBase, skyBottomColor, 0.4);
+  return horizonColor;
+}
+
 export function createSky(camera) {
   const offRes = 6;
   const offCanvas = document.createElement("canvas");
@@ -17,13 +52,6 @@ export function createSky(camera) {
   const voidFogStart = 1,
     voidFogEnd = 2000;
   const perspectiveExponent = 0.45;
-  const dayCyclePeriod = 60;
-
-  function getDayFactor(time) {
-    return (
-      0.5 + 0.5 * Math.sin((2 * Math.PI * time) / dayCyclePeriod - Math.PI / 2)
-    );
-  }
 
   const daySkyTop = { r: 120, g: 180, b: 240 };
   const daySkyBottom = { r: 165, g: 200, b: 255 };
