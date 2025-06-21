@@ -55,8 +55,7 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
     const yBuffer = new Uint16Array(W).fill(H);
 
     const halfW = W >> 1;
-    const fovScale = 1.4;
-    const scale = 280 / fovScale;
+    const verticalScale = H / (2 * Math.tan(camera.fov / 2));
 
     const zNear = 5,
       zFar = 120;
@@ -80,7 +79,7 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
       cosYaw = Math.cos(yaw);
     const sinPitch = Math.sin(pitch),
       cosPitch = Math.cos(pitch);
-    const horizon = H / 2 + pitch * 300;
+    const horizon = H / 2 + pitch * verticalScale;
 
     const sunX = Math.sin(-Math.PI / 3);
     const sunZ = Math.cos(-Math.PI / 3);
@@ -122,7 +121,7 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
           const h = h1 * (1 - t) + h2 * t;
 
           const projH =
-            ((h - camY) * cosPitch - z * sinPitch) * invZ * scale * 1.5;
+            ((h - camY) * cosPitch - z * sinPitch) * invZ * verticalScale;
           const screenY = horizon - projH;
 
           if (screenY >= yBuffer[xi]) continue;
