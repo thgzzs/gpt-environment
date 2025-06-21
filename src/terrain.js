@@ -79,7 +79,7 @@ export function createTerrain(seed = Math.floor(Math.random() * 100000)) {
       cosYaw = Math.cos(yaw);
     const sinPitch = Math.sin(pitch),
       cosPitch = Math.cos(pitch);
-    const horizon = H / 2 + pitch * verticalScale;
+    const horizon = H / 2 + Math.tan(pitch) * verticalScale;
 
     const sunX = Math.sin(-Math.PI / 3);
     const sunZ = Math.cos(-Math.PI / 3);
